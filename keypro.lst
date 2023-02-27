@@ -1,0 +1,103 @@
+C51 COMPILER V9.00   KEYPRO                                                                05/31/2013 22:02:18 PAGE 1   
+
+
+C51 COMPILER V9.00, COMPILATION OF MODULE KEYPRO
+OBJECT MODULE PLACED IN .\output\keypro.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE src\keypro.c BROWSE DEBUG OBJECTEXTEND PRINT(.\output\keypro.lst) OBJECT(.\
+                    -output\keypro.obj)
+
+line level    source
+
+   1          /*********************************************************** 
+   2          文件名称： 按键处理函数
+   3          作 者：    梁权威
+   4          版 本：    0.01
+   5          说 明：    
+   6          时间 ：    2012年12月15日20:41:16
+   7          修改记录：
+   8          总结 ：         
+   9          ***********************************************************/
+  10          #include"keypro.h"
+  11          #include"timeadjust.h"
+  12          #include"LCD12864.h"
+  13          #include"ds1302.h"
+  14          #include"disfestival.h"
+  15          #include"ds18b20alarm.h"
+  16          #include"ds18b20.h"
+  17          #include"delay.h"
+  18          #include"ds18b20distemp.h"
+  19          
+  20          
+  21          u8 LCD_DIS_BUFFER2[] = {"00时00分00秒    "};//第二行所显示内容 12
+  22          u8 LCD_DIS_BUFFER1[] = {"2000年00月00日"};//第一行所显示内容 
+  23          u8 Change_Flag[] = {' ','M','H','D','M',' ','Y'};
+  24          //u8 Change_Flag[] = {" ,分,时,日,月, ,年"};
+  25          //u8 *Change_Flag[] = {" ","分","时","日","月"," ","年",};
+  26          //u8 *temp;
+  27          /*********************************************************** 
+  28          函数名称：       void KeyPro( u8 keyvalue )
+  29          函数功能：       按键处理函数      
+  30          入口参数：       keyvalue变量就是读取按键扫描函数返回的值  
+  31          出口参数：        
+  32          备 注： 
+  33          ***********************************************************/
+  34          void KeyPro( u8 keyvalue )
+  35          {
+  36   1              switch( keyvalue )
+  37   1              {
+  38   2                      case 1: //选择调整对象按键
+  39   2                                      while( P1 != 0xff );
+  40   2                                      if( adjust_index == -1 || adjust_index == 1 )
+  41   2                                              adjust_index = 7;
+  42   2                                      adjust_index--;//每按一次这个按键，就可以选择调整对象 
+  43   2                                      if( adjust_index == 5 )
+  44   2                                              adjust_index = 4;
+  45   2                                       
+  46   2                                      LCD_DIS_BUFFER2[ 13 ] = '[';
+  47   2                                      LCD_DIS_BUFFER2[ 14 ]  = Change_Flag[ adjust_index ];
+  48   2                                      //strcpy( LCD_DIS_BUFFER2 + 13,temp );
+  49   2                                      //LCD_PutString( 6, 2, temp );
+  50   2                                      LCD_DIS_BUFFER2[ 15 ] = ']';            
+  51   2                              
+  52   2                                      break;
+  53   2                      case 2: 
+  54   2                                      DataTime_Adjust( 1 );
+C51 COMPILER V9.00   KEYPRO                                                                05/31/2013 22:02:18 PAGE 2   
+
+  55   2                                  break;
+  56   2                      case 3: 
+  57   2                                      DataTime_Adjust( -1 );
+  58   2                                      break;
+  59   2                      case 4:
+  60   2                                      Init_DS1302();
+  61   2                                      LCD_DIS_BUFFER2[ 12 ] = ' ';
+  62   2                                      LCD_DIS_BUFFER2[ 13 ] = ' ';
+  63   2                                      LCD_DIS_BUFFER2[ 14 ] = ' ';
+  64   2                                      LCD_DIS_BUFFER2[ 15 ] = ' ';
+  65   2                                      //Dis_Festival();
+  66   2                                      adjust_index = -1;
+  67   2                                      break;
+  68   2                      case 5: 
+  69   2                                      ds18b20_ReadTemperature();////读取温度值分别放在Temp_Value[]（存放温度值）与Temp_Alarm[]（存放报警值
+  70   2                                      //Set_DS18B20_Alarm_Temp();
+  71   2                                      Alarm_Temperature();//显示设置的报警温度
+  72   2                                      DelayMs( 500 );
+  73   2                                      break;
+  74   2                      default: keyvalue = 0xff;                                       
+  75   2              }
+  76   1      }
+  77          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    109    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     39       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

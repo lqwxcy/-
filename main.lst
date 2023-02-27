@@ -1,0 +1,167 @@
+C51 COMPILER V9.00   MAIN                                                                  05/31/2013 22:02:19 PAGE 1   
+
+
+C51 COMPILER V9.00, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\output\main.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE src\main.c BROWSE DEBUG OBJECTEXTEND PRINT(.\output\main.lst) OBJECT(.\outp
+                    -ut\main.obj)
+
+line level    source
+
+   1          /*********************************************************** 
+   2          文件名称： 主函数
+   3          作 者：    梁权威
+   4          版 本：    0.01
+   5          说 明：    
+   6          时间 ：    2012年12月12日22:20:11
+   7          修改记录：
+   8          总结 ：   1：今天搞了4个钟，收获最大是要看电路图，忘记加一个上拉电阻，时钟时间跑不准
+   9                            2：2012年12月18日20:33:21加入显示节日函数     
+  10                            3：2012年12月20日18:58:58加入温度显示函数
+  11                            4: 全局变量用多了将会超出KEIL 默认的直接寻址的DATA区且DATA区只有128字节
+  12                            5: DS18B20也加4.7K上拉电阻
+  13          ***********************************************************/
+  14          #include"LCD12864.h"
+  15          #include"delay.h"
+  16          #include"ds1302.h"
+  17          #include"timeadjust.h"
+  18          #include"keyscan.h"
+  19          #include"keypro.h"
+  20          #include"disfestival.h"
+  21          #include"ds18b20.h"
+  22          #include"ds18b20distemp.h"
+  23          #include"ds18b20alarm.h"
+  24          //#include<reg52.h>
+  25          //#include<string.h"
+  26          
+  27          /*------------------------------------------
+  28                  定义临时变量
+  29          -------------------------------------------*/
+  30          u8 *WEEK[] = {"SUM","MON","TUS","WEN","THU","FRI","SAT"};
+  31          sbit LED1 = P3^7;//温度高于上限LED1闪烁
+  32          sbit LED2 = P3^6; //温度高于下限LED2闪烁
+  33          u16 TimCnt = 0;
+  34          sbit BEEP = P3^5;
+  35          
+  36          /*********************************************************** 
+  37          函数名称： 定时器T0 初始化
+  38          函数功能：      
+  39          入口参数：       
+  40          出口参数： 
+  41          备 注： 
+  42          ***********************************************************/
+  43          void Time0_Init(void)
+  44          {
+  45   1              TMOD |= 0x01;  // 定时器T0工作在方式1
+  46   1              TH0 = - 1000  / 256;
+  47   1              TL0 = - 1000  % 256;    
+  48   1              EA  = 1;                        //打开总中断
+  49   1              ET0 = 1;                //允许T0中
+  50   1              //TR0 = 1;              //开启定时器T0中断 
+  51   1      }
+  52          
+  53          /*********************************************************** 
+  54          函数名称： 定时器T0中断函数
+C51 COMPILER V9.00   MAIN                                                                  05/31/2013 22:02:19 PAGE 2   
+
+  55          函数功能： 定时每2ms刷新数码管
+  56          入口参数：       
+  57          出口参数： 
+  58          备 注： 
+  59          ***********************************************************/
+  60          void Time0_ISR() interrupt 1
+  61          {
+  62   1              TH0 = - 1000  / 256;
+  63   1              TL0 = - 1000  % 256;
+  64   1              BEEP = !BEEP;
+  65   1              if( ++TimCnt == 200 )
+  66   1              {
+  67   2                      TimCnt = 0;
+  68   2                      if( H_Alarm )
+  69   2                              LED1 = ~LED1;
+  70   2                      else
+  71   2                              LED1 = 1;
+  72   2                      if( L_Alarm )
+  73   2                              LED2 = ~LED2;
+  74   2                      else
+  75   2                              LED2 = 1;
+  76   2                      TR0 = 0; //关闭定时器
+  77   2              }       
+  78   1      }
+  79          
+  80          
+  81          void main()
+  82          {
+  83   1              u8 keynum;
+  84   1              Time0_Init();//定时器T0初始化
+  85   1              Set_DS18B20_Alarm_Temp();//设置DS18B20温度的报警值，且写入ds18b20里
+  86   1              ds18b20_ReadTemperature();////读取温度值分别放在Temp_Value[]（存放温度值）与Temp_Alarm[]（存放报警值
+  87   1              Init_DS18B20();//ds18b20初始化  
+  88   1              Init_DS1302();//ds1302初始化，是对时时间
+  89   1              Init_LCD12864();//液晶初始化
+  90   1              DelayMs( 1 );
+  91   1              while( 1 )
+  92   1              {
+  93   2                      ds18b20_ReadTemperature();////读取温度值分别放在Temp_Value[]（存放温度值）与Temp_Alarm[]（存放报警值
+  94   2                      keynum = KeyScan();//读取按键的
+  95   2                      if( adjust_index == -1)
+  96   2                      {
+  97   3                              GetTime();//获取时间    
+  98   3                              Format_Time( DataTime[ 6 ],  LCD_DIS_BUFFER1 + 2 );
+  99   3                              Format_Time( DataTime[ 4 ],  LCD_DIS_BUFFER1 + 6 );
+ 100   3                              Format_Time( DataTime[ 3 ],  LCD_DIS_BUFFER1 + 10 );
+ 101   3      
+ 102   3                              Format_Time( DataTime[ 2 ],  LCD_DIS_BUFFER2 + 0 );
+ 103   3                              Format_Time( DataTime[ 1 ],  LCD_DIS_BUFFER2 + 4 );
+ 104   3                              Format_Time( DataTime[ 0 ],  LCD_DIS_BUFFER2 + 8 );
+ 105   3                              strcpy( LCD_DIS_BUFFER2 + 13, WEEK[ DataTime[ 5 ] - 1]);
+ 106   3      
+ 107   3                              LCD_PutString( 0, 1, LCD_DIS_BUFFER1);
+ 108   3                              LCD_PutString( 0, 2, LCD_DIS_BUFFER2);
+ 109   3                      }
+ 110   2      
+ 111   2                      Dis_Festival(); //显示公历节日 
+ 112   2      
+ 113   2                      if( iS_DS18B20_OK == 1 )
+ 114   2                      {       
+ 115   3                              if( H_Alarm == 1 || L_Alarm == 1  )     
+ 116   3                                      TR0 = 1;
+C51 COMPILER V9.00   MAIN                                                                  05/31/2013 22:02:19 PAGE 3   
+
+ 117   3                              else 
+ 118   3                                      TR0 = 0;        
+ 119   3                              ds18b20_Display_Temperature();//温度转换        
+ 120   3                      }
+ 121   2                      if(  keynum != 0xff )
+ 122   2                      {
+ 123   3                              KeyPro( keynum );        //一边调整一边显示
+ 124   3      
+ 125   3                              Format_Time( DataTime[ 6 ],  LCD_DIS_BUFFER1 + 2 );
+ 126   3                              Format_Time( DataTime[ 4 ],  LCD_DIS_BUFFER1 + 6 );
+ 127   3                              Format_Time( DataTime[ 3 ],  LCD_DIS_BUFFER1 + 10 );
+ 128   3                      
+ 129   3                              LCD_PutString( 0, 1, LCD_DIS_BUFFER1);
+ 130   3                      
+ 131   3                              Format_Time( DataTime[ 2 ],  LCD_DIS_BUFFER2 + 0 );
+ 132   3                              Format_Time( DataTime[ 1 ],  LCD_DIS_BUFFER2 + 4 );
+ 133   3                              Format_Time( DataTime[ 0 ],  LCD_DIS_BUFFER2 + 8 );
+ 134   3                              LCD_PutString( 0, 2, LCD_DIS_BUFFER2);  
+ 135   3                      }
+ 136   2                      
+ 137   2                                                      
+ 138   2              }
+ 139   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    353    ----
+   CONSTANT SIZE    =     28    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     23       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

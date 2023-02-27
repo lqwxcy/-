@@ -1,0 +1,14 @@
+".\output\STARTUP.obj",
+".\output\delay.obj",
+".\output\LCD12864.obj",
+".\output\ds1302.obj",
+".\output\timeadjust.obj",
+".\output\keyscan.obj",
+".\output\keypro.obj",
+".\output\disfestival.obj",
+".\output\ds18b20.obj",
+".\output\ds18b20alarm.obj",
+".\output\ds18b20distemp.obj",
+".\output\main.obj" 
+TO ".\output\万年历" 
+PRINT(".\output\万年历.m51") RAMSIZE(256) 
